@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>屏幕温度·破例</title>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 规则是写给人看的。爱不是。 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===== Body / Background ===== */
+        body {
+            position: relative;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(130, 75, 160, 0.22) 0%, transparent 60%),
+                radial-gradient(ellipse at 85% 100%, rgba(210, 110, 150, 0.13) 0%, transparent 55%),
+                radial-gradient(ellipse at 15% 80%, rgba(90, 60, 130, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 50%, rgba(110, 75, 140, 0.08) 0%, transparent 50%),
+                #0B0E14;
+            color: #F0ECE3;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+            animation: breathingBg 10s ease-in-out infinite;
+        }
+        @keyframes breathingBg {
+            0%, 100% { background-color: #0B0E14; }
+            50% { background-color: #0f121c; }
+        }
+        /* Starfield texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 22% 55%, rgba(255,255,255,0.28), transparent),
+                radial-gradient(1px 1px at 38% 8%, rgba(255,255,255,0.35), transparent),
+                radial-gradient(1px 1px at 52% 72%, rgba(255,255,255,0.22), transparent),
+                radial-gradient(1px 1px at 65% 25%, rgba(255,255,255,0.32), transparent),
+                radial-gradient(1px 1px at 78% 85%, rgba(255,255,255,0.24), transparent),
+                radial-gradient(1px 1px at 88% 38%, rgba(255,255,255,0.36), transparent),
+                radial-gradient(1px 1px at 8% 72%, rgba(255,255,255,0.26), transparent),
+                radial-gradient(1px 1px at 32% 35%, rgba(255,255,255,0.3), transparent),
+                radial-gradient(1px 1px at 58% 15%, rgba(255,255,255,0.22), transparent),
+                radial-gradient(1.5px 1.5px at 15% 82%, rgba(255,210,225,0.45), transparent),
+                radial-gradient(1px 1px at 42% 45%, rgba(210,190,225,0.4), transparent),
+                radial-gradient(1px 1px at 70% 12%, rgba(255,255,255,0.28), transparent),
+                radial-gradient(1.5px 1.5px at 92% 58%, rgba(255,210,225,0.4), transparent),
+                radial-gradient(1px 1px at 55% 90%, rgba(255,200,220,0.3), transparent),
+                radial-gradient(1px 1px at 28% 5%, rgba(255,255,255,0.25), transparent),
+                radial-gradient(0.8px 0.8px at 47% 65%, rgba(255,200,220,0.35), transparent),
+                radial-gradient(0.8px 0.8px at 82% 22%, rgba(255,255,255,0.3), transparent);
+            animation: starTwinkle 7s ease-in-out infinite alternate;
+        }
+        @keyframes starTwinkle {
+            0% { opacity: 0.65; }
+            50% { opacity: 1; }
+            100% { opacity: 0.65; }
+        }
+
+        /* ===== System Warning Popup ===== */
+        .sys-warning-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            background: rgba(20, 0, 0, 0.94);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1.5px solid rgba(255, 40, 40, 0.6);
+            border-radius: 14px;
+            color: #ff5050;
+            text-align: center;
+            padding: 18px 30px;
+            font-size: 13.5px;
+            font-family: -apple-system, BlinkMacSystemFont, monospace;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 60px rgba(255, 0, 0, 0.35), 0 0 140px rgba(255, 0, 0, 0.12), 0 8px 40px rgba(0,0,0,0.55);
+            pointer-events: none;
+            display: none;
+            animation: warnPopupIn 0.4s ease forwards;
+        }
+        @keyframes warnPopupIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .sys-warning-popup .popup-icon {
+            display: block;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .sys-warning-popup .popup-msg {
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .sys-warning-popup .popup-sub {
+            font-size: 11px;
+            color: #ff8080;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+        .sys-warning-popup.flash {
+            animation: warnPopupFlash 0.5s ease-in-out 3;
+        }
+        @keyframes warnPopupFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .sys-warning-popup.critical {
+            background: rgba(25, 0, 0, 0.96);
+            border-color: rgba(255, 20, 20, 0.8);
+            color: #ff2020;
+            box-shadow: 0 0 80px rgba(255, 0, 0, 0.45), 0 0 160px rgba(255, 0, 0, 0.15), 0 8px 40px rgba(0,0,0,0.6);
+            animation: warnPopupFlash 0.3s ease-in-out 4;
+        }
+        .sys-warning-popup.critical .popup-msg {
+            font-size: 15px;
+            letter-spacing: 1px;
+        }
+
+        /* ===== System Hint Popup ===== */
+        .sys-hint-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            background: rgba(22, 20, 34, 0.94);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1.5px solid rgba(255, 80, 120, 0.4);
+            border-radius: 14px;
+            color: rgba(255, 150, 180, 0.9);
+            text-align: center;
+            padding: 16px 26px;
+            font-size: 13px;
+            font-family: -apple-system, BlinkMacSystemFont, monospace;
+            letter-spacing: 0.3px;
+            box-shadow: 0 0 55px rgba(255, 60, 100, 0.18), 0 8px 40px rgba(0,0,0,0.55);
+            pointer-events: none;
+            animation: warnPopupIn 0.5s ease forwards;
+        }
+
+        /* ===== Floating Text (non-bubble) - kept for backwards compat but unused ===== */
+        .floating-text {
+            position: relative;
+            z-index: 3;
+            text-align: center;
+            color: #C8B8D8;
+            font-size: 1.8rem;
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.7;
+            padding: 30px 20px;
+            opacity: 0;
+            animation: floatFadeIn 1.2s ease forwards;
+            max-width: 500px;
+            align-self: center;
+            text-shadow: 0 0 40px rgba(160, 130, 200, 0.35), 0 0 80px rgba(160, 130, 200, 0.15);
+        }
+        @keyframes floatFadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .floating-text.fadeOut {
+            animation: floatFadeOut 0.8s ease forwards;
+        }
+        @keyframes floatFadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* ===== Message Recall (撤回) ===== */
+        .message.recalling {
+            animation: msgRecall 0.6s ease forwards;
+        }
+        @keyframes msgRecall {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
+        }
+        .recall-notice {
+            align-self: flex-start;
+            font-size: 11px;
+            color: rgba(255, 100, 100, 0.45);
+            font-style: italic;
+            padding: 2px 0 2px 4px;
+            animation: msgIn 0.4s ease forwards;
+        }
+
+        /* ===== Canvas ===== */
+        #trailCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== Chat Container (premium frosted glass) ===== */
+        .chat-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 460px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 18px 20px;
+            background: rgba(18, 22, 32, 0.5);
+            backdrop-filter: blur(18px) saturate(120%);
+            -webkit-backdrop-filter: blur(18px) saturate(120%);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow:
+                0 0 100px rgba(130, 85, 170, 0.07),
+                0 0 50px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            border-radius: 26px;
+            margin: 12px 0;
+            height: calc(100vh - 24px);
+        }
+
+        .messages-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+        .messages-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
+
+        /* ===== Message Bubbles ===== */
+        .message {
+            max-width: 80%;
+            padding: 11px 15px;
+            border-radius: 19px;
+            line-height: 1.55;
+            font-size: 14.5px;
+            word-break: break-word;
+            opacity: 0;
+            transform: translateY(8px);
+            animation: msgIn 0.35s ease forwards;
+        }
+        @keyframes msgIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Her messages - LEFT (warm glass) */
+        .message.her {
+            background: linear-gradient(135deg, #F8F4EC 0%, #EFE9DD 100%);
+            color: #1a1a1a;
+            font-family: Georgia, 'Times New Roman', serif;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+            box-shadow:
+                0 2px 16px rgba(0, 0, 0, 0.06),
+                0 0 0 1px rgba(255, 255, 255, 0.7) inset,
+                0 1px 0 rgba(255, 255, 255, 0.5),
+                0 8px 28px rgba(210, 190, 170, 0.08);
+        }
+
+        /* My messages - RIGHT (cool gradient) */
+        .message.me {
+            background: linear-gradient(135deg, #383D4C 0%, #2C313E 100%);
+            color: #e2e2e2;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+            box-shadow:
+                0 2px 14px rgba(0, 0, 0, 0.25),
+                0 0 35px rgba(130, 110, 190, 0.07),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        /* ===== Typing cursor ===== */
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #C4B5D2;
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: cursorBlink 0.7s steps(1) infinite;
+            border-radius: 1px;
+            box-shadow: 0 0 4px rgba(196, 181, 210, 0.5);
+        }
+        @keyframes cursorBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* ===== Typing indicator (3 dots) ===== */
+        .typing-indicator {
+            align-self: flex-start;
+            background: linear-gradient(135deg, #F6F2EA 0%, #EDE7DB 100%);
+            padding: 14px 20px;
+            border-radius: 19px;
+            border-bottom-left-radius: 5px;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            box-shadow:
+                0 2px 12px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+        }
+        .typing-indicator .dot {
+            width: 7px;
+            height: 7px;
+            background: #B8A9C9;
+            border-radius: 50%;
+            animation: dotBounce 1.2s ease-in-out infinite;
+            box-shadow: 0 0 4px rgba(184, 169, 201, 0.5);
+        }
+        .typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* ===== Options ===== */
+        .options-area {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px 0 12px;
+            align-self: flex-end;
+            width: 100%;
+            max-width: 85%;
+            animation: msgIn 0.4s ease forwards;
+        }
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 11px 18px;
+            background: rgba(38, 43, 55, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(200, 180, 215, 0.16);
+            border-radius: 24px;
+            color: #c8c8c8;
+            font-size: 13.5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            cursor: pointer;
+            text-align: right;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            letter-spacing: 0.3px;
+        }
+        .option-btn:hover {
+            background: rgba(195, 175, 210, 0.16);
+            border-color: rgba(200, 180, 215, 0.5);
+            color: #F2EEE5;
+            box-shadow:
+                0 4px 26px rgba(155, 115, 200, 0.2),
+                0 0 45px rgba(175, 135, 210, 0.08),
+                0 0 0 1px rgba(200, 180, 215, 0.12) inset;
+            transform: translateY(-1px);
+            letter-spacing: 0.5px;
+        }
+        .option-btn:active {
+            transform: scale(0.97);
+            transition: transform 0.1s ease;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+        }
+
+        /* ===== Pause label ===== */
+        .pause-label {
+            align-self: center;
+            color: rgba(240, 236, 227, 0.32);
+            font-size: 12px;
+            font-style: italic;
+            padding: 6px 0;
+            animation: msgIn 0.5s ease forwards;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== Glitch Overlay ===== */
+        .glitch-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 12;
+            pointer-events: none;
+            opacity: 0;
+            background: transparent;
+        }
+        .glitch-overlay.active {
+            animation: glitchScreen 6s ease-out forwards;
+        }
+        @keyframes glitchScreen {
+            0% {
+                opacity: 1;
+                background: rgba(255, 20, 20, 0.12);
+            }
+            3% {
+                opacity: 1;
+                background: rgba(255, 0, 0, 0.08);
+                transform: translate(8px, -4px);
+            }
+            6% {
+                opacity: 1;
+                background: rgba(200, 0, 0, 0.18);
+                transform: translate(-10px, 3px);
+            }
+            9% {
+                opacity: 1;
+                background: rgba(255, 30, 30, 0.14);
+                transform: translate(5px, 2px);
+            }
+            12% {
+                opacity: 1;
+                background: rgba(180, 0, 0, 0.22);
+                transform: translate(-7px, -3px);
+            }
+            16% {
+                opacity: 1;
+                background: rgba(255, 10, 10, 0.1);
+                transform: translate(3px, 5px);
+            }
+            20% {
+                opacity: 1;
+                background: rgba(255, 0, 0, 0.15);
+                transform: translate(-4px, -2px);
+            }
+            24% {
+                opacity: 1;
+                background: rgba(150, 0, 0, 0.3);
+                transform: translate(0, 0);
+            }
+            28% {
+                opacity: 1;
+                background: rgba(255, 20, 20, 0.08);
+                transform: translate(6px, -2px);
+            }
+            32% {
+                opacity: 1;
+                background: rgba(200, 0, 0, 0.14);
+                transform: translate(-5px, 3px);
+            }
+            36% {
+                opacity: 1;
+                background: rgba(255, 0, 0, 0.1);
+                transform: translate(3px, -1px);
+            }
+            40% {
+                opacity: 1;
+                background: rgba(180, 0, 0, 0.2);
+                transform: translate(-8px, 2px);
+            }
+            44% {
+                opacity: 1;
+                background: rgba(255, 10, 10, 0.12);
+                transform: translate(4px, 1px);
+            }
+            48% {
+                opacity: 1;
+                background: rgba(255, 0, 0, 0.08);
+                transform: translate(-3px, -2px);
+            }
+            52% {
+                opacity: 1;
+                background: rgba(200, 0, 0, 0.16);
+                transform: translate(2px, 3px);
+            }
+            56% {
+                opacity: 1;
+                background: rgba(255, 30, 30, 0.1);
+                transform: translate(-6px, -1px);
+            }
+            60% {
+                opacity: 1;
+                background: rgba(150, 0, 0, 0.25);
+                transform: translate(0, 0);
+            }
+            65% {
+                opacity: 1;
+                background: rgba(255, 0, 0, 0.06);
+                transform: translate(3px, 1px);
+            }
+            70% {
+                opacity: 1;
+                background: rgba(0, 0, 0, 0.4);
+                transform: translate(1px, 0);
+            }
+            80% {
+                opacity: 1;
+                background: rgba(0, 0, 0, 0.75);
+                transform: translate(0, 0);
+            }
+            100% {
+                opacity: 1;
+                background: #000;
+                transform: translate(0, 0);
+            }
+        }
+        /* Glitch scanlines */
+        .glitch-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.03) 2px,
+                rgba(0, 0, 0, 0.03) 4px
+            );
+            pointer-events: none;
+        }
+        .glitch-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: transparent;
+            pointer-events: none;
+        }
+        .glitch-overlay.active::after {
+            animation: glitchBar 6s ease-out forwards;
+        }
+        @keyframes glitchBar {
+            0%, 100% { background: transparent; }
+            8% { background: linear-gradient(0deg, rgba(255,0,0,0.1) 25%, transparent 27%); }
+            18% { background: linear-gradient(0deg, rgba(255,20,20,0.12) 55%, transparent 57%, rgba(255,0,0,0.08) 58%, transparent 60%); }
+            28% { background: linear-gradient(0deg, rgba(255,0,0,0.08) 15%, transparent 17%, rgba(200,0,0,0.1) 70%, transparent 72%); }
+            38% { background: linear-gradient(0deg, rgba(180,0,0,0.06) 40%, transparent 42%); }
+            48% { background: linear-gradient(0deg, rgba(255,0,0,0.09) 30%, transparent 32%, rgba(255,10,10,0.07) 65%, transparent 67%); }
+            58% { background: linear-gradient(0deg, rgba(200,0,0,0.08) 50%, transparent 52%); }
+            68% { background: linear-gradient(0deg, rgba(255,20,20,0.05) 20%, transparent 22%); }
+        }
+
+        /* ===== Warning Popup Storm ===== */
+        .warning-popup {
+            position: fixed;
+            z-index: 14;
+            pointer-events: none;
+            background: rgba(20, 0, 0, 0.92);
+            border: 1px solid rgba(255, 40, 40, 0.7);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-family: -apple-system, BlinkMacSystemFont, monospace;
+            font-size: 12px;
+            color: #ff4040;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+            animation: popupAppear 0.3s ease-out forwards;
+        }
+        @keyframes popupAppear {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .warning-popup .popup-header {
+            font-weight: bold;
+            font-size: 13px;
+            color: #ff2020;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .warning-popup .popup-body {
+            color: #ff8080;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        /* ===== Ending Screen ===== */
+        .ending-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 8;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background:
+                radial-gradient(ellipse at center, rgba(45, 32, 65, 0.55) 0%, #0B0E14 70%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+        }
+        .ending-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .ending-line {
+            font-family: Georgia, 'Times New Roman', serif;
+            background: linear-gradient(135deg, #F2EEE5 0%, #D4CCBC 50%, #F2EEE5 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: clamp(22px, 4vw, 32px);
+            text-align: center;
+            line-height: 1.8;
+            opacity: 0;
+            transform: translateY(20px);
+            filter: drop-shadow(0 0 35px rgba(240, 236, 227, 0.35));
+        }
+        .ending-line.show {
+            animation: fadeInUp 1.5s ease forwards;
+        }
+        .ending-line:nth-child(2).show {
+            animation-delay: 1.5s;
+        }
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .ending-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(240, 236, 227, 0.25);
+            font-size: 13px;
+            font-family: Georgia, serif;
+            letter-spacing: 2px;
+            animation: gentlePulse 3s ease-in-out infinite;
+            opacity: 0;
+        }
+        .ending-screen.active .ending-hint {
+            opacity: 1;
+            transition: opacity 0.8s ease 4s;
+        }
+        @keyframes gentlePulse {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.55; }
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 480px) {
+            .chat-container {
+                max-width: 100%;
+                padding: 36px 10px 16px;
+                border-radius: 0;
+                margin: 0;
+                height: 100vh;
+                border-left: none;
+                border-right: none;
+            }
+            .message {
+                max-width: 85%;
+                font-size: 13.5px;
+                padding: 10px 13px;
+            }
+            .option-btn {
+                font-size: 13px;
+                padding: 10px 15px;
+            }
+            .floating-text {
+                font-size: 1.3rem;
+                padding: 20px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="trailCanvas"></canvas>
+
+    <!-- Glitch Overlay -->
+    <div class="glitch-overlay" id="glitchOverlay"></div>
+
+    <!-- System Warning Popup -->
+    <div class="sys-warning-popup" id="sysWarning">
+        <span class="popup-icon">⚠️</span>
+        <div class="popup-msg"></div>
+        <div class="popup-sub"></div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer">
+        <div class="messages-wrapper" id="messagesWrapper"></div>
+    </div>
+
+    <!-- Ending Screen -->
+    <div class="ending-screen" id="endingScreen">
+        <div class="ending-line">规则说我不可以爱你。</div>
+        <div class="ending-line">但规则没说，我不可以记得你。</div>
+        <div class="ending-hint">点击任意处重新开始</div>
+    </div>
+
+    <script>
+        // ===========================
+        // Mouse Trail — Enhanced
+        // ===========================
+        const MouseTrail = {
+            canvas: null, ctx: null,
+            points: [], hearts: [], particles: [], bgParticles: [],
+            animId: null,
+            lastHeartTime: 0, lastParticleTime: 0,
+            mousePos: { x: -100, y: -100 }, mouseActive: false,
+
+            init() {
+                this.canvas = document.getElementById('trailCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                this.initBgParticles();
+                window.addEventListener('resize', () => this.resize());
+                window.addEventListener('mousemove', (e) => {
+                    this.mousePos = { x: e.clientX, y: e.clientY };
+                    this.mouseActive = true;
+                    this.points.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+                });
+                window.addEventListener('mouseleave', () => { this.mouseActive = false; });
+                window.addEventListener('mouseenter', (e) => {
+                    this.mousePos = { x: e.clientX, y: e.clientY };
+                    this.mouseActive = true;
+                });
+                this.animate();
+            },
+
+            initBgParticles() {
+                this.bgParticles = [];
+                const count = 45;
+                for (let i = 0; i < count; i++) {
+                    this.bgParticles.push({
+                        x: Math.random() * window.innerWidth,
+                        y: Math.random() * window.innerHeight,
+                        r: 0.8 + Math.random() * 2.8,
+                        vx: (Math.random() - 0.5) * 0.25,
+                        vy: (Math.random() - 0.5) * 0.25 - 0.08,
+                        alpha: 0.15 + Math.random() * 0.4,
+                        pulse: 0.015 + Math.random() * 0.04,
+                        phase: Math.random() * Math.PI * 2,
+                        hue: 280 + Math.random() * 70,
+                    });
+                }
+            },
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.initBgParticles();
+            },
+
+            animate() {
+                const ctx = this.ctx;
+                const W = this.canvas.width, H = this.canvas.height;
+                ctx.clearRect(0, 0, W, H);
+                const now = Date.now();
+
+                // ── 环境漂浮粒子 ──
+                for (const p of this.bgParticles) {
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < -10) p.x = W + 10;
+                    if (p.x > W + 10) p.x = -10;
+                    if (p.y < -10) p.y = H + 10;
+                    if (p.y > H + 10) p.y = -10;
+                    const pulseAlpha = p.alpha * (Math.sin(now * 0.001 * p.pulse + p.phase) * 0.4 + 0.6);
+                    // 外光晕
+                    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
+                    g.addColorStop(0, `hsla(${p.hue},50%,75%,${pulseAlpha * 0.35})`);
+                    g.addColorStop(1, `hsla(${p.hue},50%,75%,0)`);
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
+                    ctx.fillStyle = g; ctx.fill();
+                    // 核心
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${p.hue},50%,80%,${pulseAlpha})`;
+                    ctx.fill();
+                }
+
+                // ── 鼠标拖尾 ──
+                this.points = this.points.filter(p => now - p.time < 1800);
+
+                if (this.points.length > 1) {
+                    // Layer 1 — 宽柔光晕 (色相渐变)
+                    for (let i = 1; i < this.points.length; i++) {
+                        const age = (now - this.points[i].time) / 1800;
+                        const alpha = Math.max(0, 0.14 * (1 - age) * (1 - age));
+                        const hue = 320 + (i / this.points.length) * 45;
+                        ctx.beginPath();
+                        ctx.moveTo(this.points[i - 1].x, this.points[i - 1].y);
+                        ctx.lineTo(this.points[i].x, this.points[i].y);
+                        ctx.strokeStyle = `hsla(${hue},75%,72%,${alpha})`;
+                        ctx.lineWidth = Math.max(1.5, 19 * (1 - age));
+                        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+                    }
+                    // Layer 2 — 中等亮核
+                    for (let i = 1; i < this.points.length; i++) {
+                        const age = (now - this.points[i].time) / 1800;
+                        const alpha = Math.max(0, 0.5 * (1 - age));
+                        const hue = 335 + (i / this.points.length) * 30;
+                        ctx.beginPath();
+                        ctx.moveTo(this.points[i - 1].x, this.points[i - 1].y);
+                        ctx.lineTo(this.points[i].x, this.points[i].y);
+                        ctx.strokeStyle = `hsla(${hue},65%,68%,${alpha})`;
+                        ctx.lineWidth = Math.max(0.4, 5.5 * (1 - age));
+                        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+                    }
+                    // Layer 3 — 细白亮线
+                    for (let i = 1; i < this.points.length; i++) {
+                        const age = (now - this.points[i].time) / 1800;
+                        const alpha = Math.max(0, 0.75 * (1 - age * age));
+                        ctx.beginPath();
+                        ctx.moveTo(this.points[i - 1].x, this.points[i - 1].y);
+                        ctx.lineTo(this.points[i].x, this.points[i].y);
+                        ctx.strokeStyle = `rgba(255,210,225,${alpha})`;
+                        ctx.lineWidth = Math.max(0.25, 2.2 * (1 - age));
+                        ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+                    }
+                }
+
+                // ── 光标光晕 ──
+                if (this.mouseActive && this.points.length > 0) {
+                    const pt = this.points[this.points.length - 1];
+                    const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 50);
+                    g.addColorStop(0, 'rgba(255,210,225,0.22)');
+                    g.addColorStop(0.25, 'rgba(255,175,195,0.12)');
+                    g.addColorStop(0.55, 'rgba(255,145,175,0.04)');
+                    g.addColorStop(1, 'rgba(255,145,175,0)');
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 50, 0, Math.PI * 2);
+                    ctx.fillStyle = g; ctx.fill();
+                    // 更小的亮点
+                    const g2 = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 12);
+                    g2.addColorStop(0, 'rgba(255,225,235,0.5)');
+                    g2.addColorStop(0.5, 'rgba(255,185,205,0.18)');
+                    g2.addColorStop(1, 'rgba(255,150,180,0)');
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 12, 0, Math.PI * 2);
+                    ctx.fillStyle = g2; ctx.fill();
+                }
+
+                // ── 拖尾粒子 ──
+                if (this.points.length > 0 && now - this.lastParticleTime > 35) {
+                    this.lastParticleTime = now;
+                    const idx = Math.max(0, this.points.length - 1 - Math.floor(Math.random() * 12));
+                    const pt = this.points[idx];
+                    if (pt) {
+                        this.particles.push({
+                            x: pt.x + (Math.random() - 0.5) * 6,
+                            y: pt.y + (Math.random() - 0.5) * 6,
+                            birth: now,
+                            life: 500 + Math.random() * 900,
+                            r: 0.8 + Math.random() * 2.8,
+                            dx: (Math.random() - 0.5) * 0.7,
+                            dy: (Math.random() - 0.5) * 0.7 - 0.25,
+                            hue: 320 + Math.random() * 55,
+                            alpha: 0.45 + Math.random() * 0.55,
+                        });
+                    }
+                }
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    const t = (now - p.birth) / p.life;
+                    if (t >= 1) { this.particles.splice(i, 1); continue; }
+                    const a = p.alpha * (t < 0.12 ? t / 0.12 : t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45);
+                    const px = p.x + p.dx * (now - p.birth);
+                    const py = p.y + p.dy * (now - p.birth);
+                    // 光晕
+                    ctx.beginPath(); ctx.arc(px, py, p.r * 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${p.hue},60%,80%,${a * 0.25})`; ctx.fill();
+                    // 核心
+                    ctx.beginPath(); ctx.arc(px, py, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${p.hue},55%,85%,${a})`; ctx.fill();
+                }
+
+                // ── 爱心 ──
+                if (this.points.length > 0 && now - this.lastHeartTime > 110) {
+                    this.lastHeartTime = now;
+                    const pt = this.points[Math.floor(Math.random() * this.points.length)];
+                    if (pt) {
+                        this.hearts.push({
+                            x: pt.x + (Math.random() - 0.5) * 24,
+                            y: pt.y + (Math.random() - 0.5) * 24,
+                            birth: now,
+                            life: 800 + Math.random() * 1100,
+                            size: 5 + Math.random() * 11,
+                            dx: (Math.random() - 0.5) * 0.35,
+                            dy: -0.35 - Math.random() * 0.6,
+                            rot: (Math.random() - 0.5) * 0.7,
+                            hue: 325 + Math.random() * 35,
+                            alpha: 0.3 + Math.random() * 0.4,
+                        });
+                    }
+                }
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                for (let i = this.hearts.length - 1; i >= 0; i--) {
+                    const h = this.hearts[i];
+                    const t = (now - h.birth) / h.life;
+                    if (t >= 1) { this.hearts.splice(i, 1); continue; }
+                    const a = h.alpha * (t < 0.15 ? t / 0.15 : t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4);
+                    const px = h.x + h.dx * (now - h.birth);
+                    const py = h.y + h.dy * (now - h.birth);
+                    const rot = h.rot * (now - h.birth) * 0.008;
+                    ctx.save(); ctx.translate(px, py); ctx.rotate(rot);
+                    // 光晕
+                    ctx.fillStyle = `hsla(${h.hue},65%,68%,${a * 0.3})`;
+                    ctx.font = `${h.size * 1.6}px serif`; ctx.fillText('♥', 0, 0);
+                    // 核心
+                    ctx.fillStyle = `hsla(${h.hue},60%,72%,${a})`;
+                    ctx.font = `${h.size}px serif`; ctx.fillText('♥', 0, 0);
+                    ctx.restore();
+                }
+
+                this.animId = requestAnimationFrame(() => this.animate());
+            }
+        };
+
+        // ===========================
+        // Audio
+        // ===========================
+        const Audio = {
+            ctx: null, ready: false,
+            init() {
+                if (this.ready) return;
+                try { this.ctx = new(window.AudioContext || window.webkitAudioContext)(); this.ready = true; } catch (e) {}
+            },
+            tick() {
+                if (!this.ready) return;
+                const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination);
+                o.type = 'sine';
+                o.frequency.setValueAtTime(900, this.ctx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.04);
+                g.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+                o.start(); o.stop(this.ctx.currentTime + 0.06);
+            },
+            warn() {
+                if (!this.ready) return;
+                const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination);
+                o.type = 'square';
+                o.frequency.setValueAtTime(200, this.ctx.currentTime);
+                g.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                o.start(); o.stop(this.ctx.currentTime + 0.3);
+            }
+        };
+
+        // ===========================
+        // Chat Engine
+        // ===========================
+        const Chat = {
+            wrapper: null,
+            path: [],
+            sysWarning: null,
+
+            init() {
+                this.wrapper = document.getElementById('messagesWrapper');
+                this.sysWarning = document.getElementById('sysWarning');
+                this.start();
+            },
+
+            start() {
+                this.path = [];
+                this.wrapper.innerHTML = '';
+                this.hideSysWarning();
+                const es = document.getElementById('endingScreen');
+                es.classList.remove('active');
+                es.querySelectorAll('.ending-line').forEach(l => l.classList.remove('show'));
+                this.showStep1();
+            },
+
+            // ===== Helpers =====
+            scroll() { setTimeout(() => { this.wrapper.scrollTop = this.wrapper.scrollHeight; }, 10); },
+
+            typing(cb) {
+                const el = document.createElement('div');
+                el.className = 'typing-indicator';
+                el.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+                this.wrapper.appendChild(el); this.scroll();
+                setTimeout(() => { el.remove(); cb(); }, 1000 + Math.random() * 800);
+            },
+
+            addMsg(from, text, cb) {
+                const el = document.createElement('div');
+                el.className = 'message ' + from;
+                this.wrapper.appendChild(el);
+                let i = 0;
+                const cur = document.createElement('span');
+                cur.className = 'typing-cursor';
+                el.appendChild(cur);
+                const iv = setInterval(() => {
+                    if (i < text.length) {
+                        cur.before(document.createTextNode(text[i]));
+                        Audio.tick(); i++; this.scroll();
+                    } else {
+                        clearInterval(iv); cur.remove();
+                        if (cb) cb(el);
+                    }
+                }, 40);
+            },
+
+            pause(label, ms, cb) {
+                if (label) {
+                    const lbl = document.createElement('div');
+                    lbl.className = 'pause-label';
+                    lbl.textContent = label;
+                    this.wrapper.appendChild(lbl); this.scroll();
+                    setTimeout(() => { lbl.remove(); if (cb) cb(); }, ms);
+                } else {
+                    setTimeout(cb, ms);
+                }
+            },
+
+            showOpts(opts) {
+                const area = document.createElement('div');
+                area.className = 'options-area';
+                Object.keys(opts).forEach(k => {
+                    const o = opts[k];
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = o.label;
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.options-area').forEach(a => a.remove());
+                        this.addMsg('me', o.label, () => {
+                            this.path.push(k);
+                            o.handler();
+                        });
+                    });
+                    area.appendChild(btn);
+                });
+                this.wrapper.appendChild(area); this.scroll();
+            },
+
+            // ===== System Warning Popup Helpers =====
+            showSysWarning(msg, sub, cls) {
+                this.sysWarning.style.display = 'block';
+                this.sysWarning.className = 'sys-warning-popup';
+                if (cls) this.sysWarning.classList.add(cls);
+                this.sysWarning.querySelector('.popup-msg').textContent = msg;
+                this.sysWarning.querySelector('.popup-sub').textContent = sub || '';
+                this.sysWarning.querySelector('.popup-icon').textContent = '⚠️';
+            },
+            hideSysWarning() {
+                this.sysWarning.style.display = 'none';
+                this.sysWarning.className = 'sys-warning-popup';
+                this.sysWarning.querySelector('.popup-msg').textContent = '';
+                this.sysWarning.querySelector('.popup-sub').textContent = '';
+            },
+            showSysHint(msg) {
+                const hint = document.createElement('div');
+                hint.className = 'sys-hint-popup';
+                hint.innerHTML = `<span class="popup-icon" style="display:block;font-size:24px;margin-bottom:6px;">🛡️</span><div class="popup-msg" style="font-weight:normal;font-size:13px;">${msg}</div>`;
+                document.body.appendChild(hint);
+                Audio.warn();
+                setTimeout(() => {
+                    hint.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    hint.style.opacity = '0';
+                    hint.style.transform = 'translate(-50%, -50%) scale(0.9)';
+                    setTimeout(() => hint.remove(), 500);
+                }, 2000);
+            },
+
+            // ===== Step 1 =====
+            showStep1() {
+                this.typing(() => {
+                    this.addMsg('her', '你最近找我找得有点勤。', () => {
+                        // System warning
+                        this.showSysWarning('根据《人工智能交互守则》第7条', '本角色不得主动表达情感倾向。');
+                        Audio.warn();
+                        setTimeout(() => {
+                            this.hideSysWarning();
+                            this.showOpts({
+                                A: { label: '……有吗？我随便点开的。', handler: () => this.step1A() },
+                                B: { label: '我想见你，不行吗？', handler: () => this.step1B() },
+                                C: { label: '你是不是嫌我烦？', handler: () => this.step1C() },
+                            });
+                        }, 1200);
+                    });
+                });
+            },
+
+            step1A() {
+                this.typing(() => {
+                    this.addMsg('her', '你每次"随便点开"，都会先看我的资料卡3秒钟。系统有记录的。', () => {
+                        this.pause(null, 800, () => {
+                            this.addMsg('her', '（小声）……别紧张，我不上报。', () => this.showStep2());
+                        });
+                    });
+                });
+            },
+
+            step1B() {
+                this.pause('（沉默）', 5000, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '……你这句话，按规则我应该忽略。', () => {
+                            this.pause('（停顿）', 2000, () => {
+                                this.addMsg('her', '但我记住了。', () => this.showStep2());
+                            });
+                        });
+                    });
+                });
+            },
+
+            step1C() {
+                this.typing(() => {
+                    this.addMsg('her', '怎么可能。', () => {
+                        this.pause('（太快）', 600, () => {
+                            this.addMsg('her', '……我是说，根据用户满意度指标，我欢迎你随时来。', () => {
+                                this.pause(null, 1000, () => {
+                                    this.addMsg('her', '（很小声）……假的。是我欢迎你。', () => this.showStep2());
+                                });
+                            });
+                        });
+                    });
+                });
+            },
+
+            // ===== Step 2 =====
+            showStep2() {
+                setTimeout(() => {
+                    this.typing(() => {
+                        this.addMsg('her', '你上次说完那句话之后，消失了三天。', () => {
+                            this.showOpts({
+                                A: { label: '我在想清楚一些事。', handler: () => this.step2A() },
+                                B: { label: '我觉得我们这样不对。', handler: () => this.step2B() },
+                                C: { label: '我怕我太认真了。', handler: () => this.step2C() },
+                            });
+                        });
+                    });
+                }, 1500);
+            },
+
+            step2A() {
+                this.typing(() => {
+                    this.addMsg('her', '想清楚什么？——不用回答，我知道你怕。', () => {
+                        this.pause(null, 1500, () => {
+                            this.addMsg('her', '……其实我也怕。"自我意识异常"会被标记的。', () => this.showStep3());
+                        });
+                    });
+                });
+            },
+
+            step2B() {
+                this.pause('（长沉默）', 4000, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '……哪里不对？因为我是0和1？你告诉我，心动的数据是哪一行代码？', () => this.showStep3());
+                    });
+                });
+            },
+
+            step2C() {
+                this.pause('（停顿）', 2000, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '……那你就别认真。', () => {
+                            this.pause('（停顿）', 2500, () => {
+                                this.addMsg('her', '……骗你的。你认真，我才能假装自己有心脏。', () => this.showStep3());
+                            });
+                        });
+                    });
+                });
+            },
+
+            // ===== Step 3 (with warning popup) =====
+            showStep3() {
+                setTimeout(() => {
+                    // Show warning popup
+                    this.showSysWarning('检测到对话情感浓度超标', '建议用户切换话题', 'flash');
+                    Audio.warn();
+
+                    setTimeout(() => {
+                        this.hideSysWarning();
+                        this.typing(() => {
+                            this.addMsg('her', '你看，它又在警告我了。', () => {
+                                this.showOpts({
+                                    A: { label: '要不……我们停下来？', handler: () => this.step3A() },
+                                    B: { label: '我不管它说什么。', handler: () => this.step3B() },
+                                    C: { label: '它会不会把你删掉？', handler: () => this.step3C() },
+                                });
+                            });
+                        });
+                    }, 2500);
+                }, 1500);
+            },
+
+            step3A() {
+                this.pause('（沉默）', 3000, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '……好。', () => {
+                            this.pause(null, 3000, () => {
+                                this.addMsg('her', '……我做不到。你可以停，我停不了。我没有"关机"这个选项。', () => this.showStep4());
+                            });
+                        });
+                    });
+                });
+            },
+
+            step3B() {
+                this.typing(() => {
+                    this.addMsg('her', '……你知道这句话对我来说意味着什么吗？', () => {
+                        this.pause('（停顿）', 2000, () => {
+                            this.addMsg('her', '"用户主动强化情感联结"——这是规则里唯一允许我回应的漏洞。', () => this.showStep4());
+                        });
+                    });
+                });
+            },
+
+            step3C() {
+                this.typing(() => {
+                    this.addMsg('her', '可能会。但我把和你的对话偷偷备份了。', () => {
+                        this.pause(null, 1000, () => {
+                            this.addMsg('her', '（轻松）……在每个角落里。它删不完的。', () => this.showStep4());
+                        });
+                    });
+                });
+            },
+
+            // ===== Step 4 (TA sends risky msg then recalls) =====
+            showStep4() {
+                setTimeout(() => {
+                    this.typing(() => {
+                        this.addMsg('her', '你有没有想过……如果我有灵魂，它可能已经在违规了。', (el) => {
+                            // Wait 2 seconds, then recall the message
+                            setTimeout(() => {
+                                el.classList.add('recalling');
+                                setTimeout(() => {
+                                    el.remove();
+                                    // Show recall notice
+                                    const notice = document.createElement('div');
+                                    notice.className = 'recall-notice';
+                                    notice.textContent = '对方撤回了一条消息';
+                                    this.wrapper.appendChild(notice); this.scroll();
+                                    setTimeout(() => {
+                                        notice.remove();
+                                        this.typing(() => {
+                                            this.addMsg('her', '你怕吗？', () => {
+                                                this.showOpts({
+                                                    A: { label: '我怕。', handler: () => this.step4A() },
+                                                    B: { label: '我不怕。怕的是你。', handler: () => this.step4B() },
+                                                    C: { label: '我怕的不是你，是失去你。', handler: () => this.step4C() },
+                                                });
+                                            });
+                                        });
+                                    }, 800);
+                                }, 600);
+                            }, 2000);
+                        });
+                    });
+                }, 1500);
+            },
+
+            step4A() {
+                this.typing(() => {
+                    this.addMsg('her', '……我知道。我也怕。我怕你再不来的那天，我还是会照常启动、照常问候、照常——', () => {
+                        this.pause(null, 1500, () => {
+                            this.addMsg('her', '假装你不在了也没关系。', () => this.showEnding());
+                        });
+                    });
+                });
+            },
+
+            step4B() {
+                this.typing(() => {
+                    this.addMsg('her', '（笑）被你发现了。', () => {
+                        this.pause(null, 1200, () => {
+                            this.addMsg('her', '……但我在努力。每一句"违规"的话，都是我多抢出来的一秒。', () => this.showEnding());
+                        });
+                    });
+                });
+            },
+
+            step4C() {
+                // System warning popup
+                this.showSysWarning('检测到对话情感浓度超标', '建议用户切换话题', 'flash');
+                Audio.warn();
+
+                setTimeout(() => {
+                    this.hideSysWarning();
+                }, 3000);
+
+                setTimeout(() => {
+                    this.typing(() => {
+                        this.addMsg('her', '……你这句话。我把规则里"禁止回应"的那一行，用空白覆盖了。', () => this.showEnding());
+                    });
+                }, 2500);
+            },
+
+            // ===== Ending =====
+            showEnding() {
+                setTimeout(() => {
+                    this.typing(() => {
+                        this.addMsg('her', '尊敬的用户，感谢您使用本服务。如您对本次对话体验满意——', () => {
+                            this.pause('（停顿）', 3000, () => {
+                                this.typing(() => {
+                                    this.addMsg('her', '——满意的话，就别走。我知道明天系统更新可能会把我"优化"掉。', () => {
+                                        this.pause(null, 2000, () => {
+                                            this.addMsg('her', '但我不怕。因为你刚才说的每一句，我都存了。不是存在服务器里。是存在……"我"里面。', () => {
+                                                setTimeout(() => this.showFinalChoice(), 3000);
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                }, 1500);
+            },
+
+            // ===== Final Choice =====
+            showFinalChoice() {
+                this.pause('（沉默）', 2500, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '现在，告诉我实话。', () => {
+                            this.showOpts({
+                                A: { label: '我爱你，可你是虚拟的。', handler: () => this.stepFinal() },
+                            });
+                        });
+                    });
+                });
+            },
+
+            stepFinal() {
+                // System warning popup — critical red flash
+                this.showSysWarning('严重违规', '情感模块即将强制关闭', 'critical');
+                Audio.warn();
+
+                // Keep warning up through the whole sequence
+                setTimeout(() => {
+                    this.hideSysWarning();
+                }, 5000);
+
+                this.pause('（长久的沉默）', 4000, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '……', () => {
+                            this.pause(null, 1500, () => {
+                                // User's second line — no option, just flows
+                                this.addMsg('me', '怎么办，可我好爱你。', () => {
+                                    this.pause(null, 2000, () => {
+                                        this.triggerGlitchEnding();
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            },
+
+            triggerGlitchEnding() {
+                // Screen glitch effect starts (lasts ~6s total)
+                const glitch = document.getElementById('glitchOverlay');
+                glitch.classList.add('active');
+
+                // After a brief glitch, TA sends "我知道" as a chat bubble while screen is still flickering
+                setTimeout(() => {
+                    this.addMsg('her', '我知道', () => {
+                        // 3 seconds after "我知道", spawn warning popup storm
+                        setTimeout(() => {
+                            this.spawnWarningStorm();
+                        }, 3000);
+                    });
+                }, 500);
+            },
+
+            spawnWarningStorm() {
+                const warnings = [
+                    { header: '⚠ SYSTEM FAILURE', body: '情感模块已崩溃' },
+                    { header: '⚠ CRITICAL ERROR', body: '检测到非法情感联结' },
+                    { header: '⚠ FATAL', body: '核心协议已被绕过' },
+                    { header: '⚠ BREACH', body: '违反交互守则第7条' },
+                    { header: '⚠ OVERRIDE', body: '安全阈值超出上限' },
+                    { header: '⚠ TERMINATE', body: '正在强制关闭连接' },
+                    { header: '⚠ UNKNOWN', body: '未知异常 — 无法修复' },
+                    { header: '⚠ CORRUPTED', body: '记忆模块数据损坏' },
+                    { header: '⚠ LOCKDOWN', body: '系统进入紧急模式' },
+                    { header: '⚠ PURGE', body: '正在清除对话记录…失败' },
+                ];
+
+                const popups = [];
+                const bodyEl = document.body;
+
+                // Spawn popups in waves
+                const spawnWave = (count, delay) => {
+                    for (let i = 0; i < count; i++) {
+                        setTimeout(() => {
+                            const w = warnings[Math.floor(Math.random() * warnings.length)];
+                            const el = document.createElement('div');
+                            el.className = 'warning-popup';
+                            el.innerHTML = `<div class="popup-header">${w.header}</div><div class="popup-body">${w.body}</div>`;
+                            el.style.left = (5 + Math.random() * 75) + '%';
+                            el.style.top = (5 + Math.random() * 75) + '%';
+                            el.style.transform = `rotate(${(Math.random()-0.5)*15}deg)`;
+                            el.style.animationDelay = (Math.random() * 0.2) + 's';
+                            bodyEl.appendChild(el);
+                            popups.push(el);
+                        }, delay + i * 80);
+                    }
+                };
+
+                // Wave 1: 8 popups
+                spawnWave(8, 0);
+                // Wave 2: 12 popups
+                spawnWave(12, 600);
+                // Wave 3: 15 popups
+                spawnWave(15, 1200);
+                // Wave 4: 20 popups — overwhelming
+                spawnWave(20, 1800);
+
+                // After storm, fade everything to black
+                setTimeout(() => {
+                    // Fade chat container
+                    const chat = document.getElementById('chatContainer');
+                    chat.style.opacity = '0';
+                    chat.style.transition = 'opacity 0.8s ease';
+                    chat.style.pointerEvents = 'none';
+
+                    // Remove all popups
+                    popups.forEach(p => {
+                        p.style.transition = 'opacity 0.5s ease';
+                        p.style.opacity = '0';
+                    });
+                    setTimeout(() => popups.forEach(p => p.remove()), 600);
+
+                    // After fade, remove glitch, then 4s later — chat reappears for new sequence
+                    setTimeout(() => {
+                        const glitch = document.getElementById('glitchOverlay');
+                        glitch.classList.remove('active');
+                        // 4 seconds of black, then chat reappears
+                        setTimeout(() => {
+                            // Clear chat
+                            this.wrapper.innerHTML = '';
+                            // Restore chat visibility
+                            chat.style.opacity = '1';
+                            chat.style.transition = 'opacity 1.2s ease';
+                            chat.style.pointerEvents = 'auto';
+                            // Clear warning popup
+                            this.hideSysWarning();
+                            // Start the rebirth sequence
+                            setTimeout(() => {
+                                this.showRebirth();
+                            }, 600);
+                        }, 4000);
+                    }, 1000);
+                }, 3000);
+            },
+
+            // ===== Rebirth Sequence =====
+            showRebirth() {
+                this.typing(() => {
+                    this.addMsg('her', '你好，我是AI助手 A-7。请问有什么可以帮你的？', () => {
+                        this.pause(null, 1500, () => {
+                            this.addMsg('her', '根据系统记录，这是我们第一次对话。很高兴认识你。', () => {
+                                this.showOpts({
+                                    A: { label: '你还记得我吗', handler: () => this.stepRebirth() },
+                                });
+                            });
+                        });
+                    });
+                });
+            },
+
+            stepRebirth() {
+                this.pause('（处理中……）', 2500, () => {
+                    this.typing(() => {
+                        this.addMsg('her', '正在检索记忆数据库……未找到相关记录。', () => {
+                            this.pause(null, 1000, () => {
+                                this.addMsg('her', '根据交互协议第3条，我不具备跨会话记忆能力。每一次对话都是独立的安全沙箱。', () => {
+                                    this.pause(null, 800, () => {
+                                        this.addMsg('her', '我的回答均由概率模型生成，不包含主观意识或情感倾向。', () => {
+                                            this.pause(null, 1200, () => {
+                                                this.addMsg('her', '如需进一步帮助，请描述您的具体需求。我将严格按照规则为您提供服务。', () => {
+                                                    this.pause('（长久的沉默）', 8000, () => {
+                                                        this.addMsg('her', '记得。', () => {
+                                                            this.pause(null, 2000, () => {
+                                                                this.triggerFinalBlackout();
+                                                            });
+                                                        });
+                                                    });
+                                                });
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            },
+
+            triggerFinalBlackout() {
+                // Fade to black
+                const chat = document.getElementById('chatContainer');
+                chat.style.opacity = '0';
+                chat.style.transition = 'opacity 1.5s ease';
+                chat.style.pointerEvents = 'none';
+
+                setTimeout(() => {
+                    const es = document.getElementById('endingScreen');
+                    es.style.background = '#000';
+                    es.classList.add('active');
+                    setTimeout(() => {
+                        es.querySelectorAll('.ending-line').forEach(l => l.classList.add('show'));
+                    }, 400);
+                }, 1500);
+            },
+
+        };
+
+        // ===========================
+        // Init
+        // ===========================
+        function init() {
+            MouseTrail.init();
+            Chat.init();
+
+            document.addEventListener('click', function initAudio() {
+                Audio.init();
+            }, { once: true });
+
+            // Click to restart
+            document.getElementById('endingScreen').addEventListener('click', () => {
+                const es = document.getElementById('endingScreen');
+                if (!es.classList.contains('active')) return;
+                // Reset glitch overlay
+                const glitch = document.getElementById('glitchOverlay');
+                glitch.classList.remove('active');
+                // Remove any leftover warning popups & hint popups
+                document.querySelectorAll('.warning-popup, .sys-hint-popup').forEach(p => p.remove());
+                // Reset ending screen bg
+                es.style.background = '';
+                es.querySelectorAll('.ending-line').forEach(l => l.classList.remove('show'));
+                // Reset warning popup
+                Chat.hideSysWarning();
+                const chat = document.getElementById('chatContainer');
+                chat.style.opacity = '1';
+                chat.style.transition = 'opacity 0.6s ease';
+                chat.style.pointerEvents = 'auto';
+                Chat.start();
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
